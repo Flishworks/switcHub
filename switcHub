@@ -6,23 +6,21 @@
 //Adress 0: int holding number of switches
 //address 161-25*161: members of class Outlet holding all  user data for switches
 
-//enhancements:
-//add "scene" mode
-//add ability to set multiple timers at once
-//figure out 030 time bug
+//enhancement ideas:
+//add "profile" mode
 //toggle timer active/disabled
+//oscillator mode
 
 #include <RCSwitch.h>
 #include <TimeLib.h>
-
-//#include <Wire.h> //included in EEPROMAnything
-#define eeprom1 0x50    //Address of 24LC256 eeprom chip
 #include <EEPROMAnything.h>
+#define eeprom1 0x50    //Address of 24LC256 eeprom chip
+
 
 RCSwitch mySwitch = RCSwitch();
 RCSwitch myReceiver = RCSwitch();
 int numSwitches;//number of switches currently loaded
-const int maxSwitches=100;//number of switches currently loaded
+const int maxSwitches=100;//max number of switches
 const int numSlots=5; //max number of slots we can add. Limited by memory.
 boolean debug=false;
 boolean onFlag[maxSwitches];
@@ -101,9 +99,7 @@ void setup() {
   }
 }
 
-
 void loop() {
-  
  bluetoothInterface();
  if (millis()%60000<5){ //prevent repeated sending by triggering only once a minute
  scanSwitches(); //scans and flips switches using time library
