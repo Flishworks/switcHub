@@ -4,16 +4,16 @@
 
 //EEPROM layout: 
 //Adress 0: int holding number of switches
-//address 161-25*161: members of class Outlet holding all  user data for switches
+//address 161 to 25*161: members of class Outlet holding all  user data for switches
 
 //enhancement ideas:
 //add "profile" mode
 //toggle timer active/disabled
 //oscillator mode
 
+#include <Wire.h>
 #include <RCSwitch.h>
 #include <TimeLib.h>
-#include <EEPROMAnything.h>
 #define eeprom1 0x50    //Address of 24LC256 eeprom chip
 
 
@@ -634,7 +634,7 @@ bool spillSlots(int DoW, int switchNum){
             Serial.print(F("    On at: "));
             Serial.print(currentOutlet.slotTimes[DoW][i][0][1]);
             Serial.print(F(":"));
-              if (currentOutlet.slotTimes[DoW][i][1][0]<10){
+              if (currentOutlet.slotTimes[DoW][i][0][0]<10){     //2/2/2018 - display bug fix
               Serial.print(0);
             }
             Serial.println(currentOutlet.slotTimes[DoW][i][0][0]);
@@ -915,7 +915,7 @@ int getSystemDay(long &checkPoint, byte &stage){
         if(inString=="Z"||inString=="z"){//back to main
           backToMain(checkPoint);
         }
-        else if((switchNum>0)&&(switchNum<=numSwitches)){
+        else if((switchNum>=0)&&(switchNum<=numSwitches)){
           checkPoint=millis(); //re-extend 30 second timout timer due to activity
           getName(checkPoint,switchNum);
         }
@@ -928,7 +928,7 @@ int getSystemDay(long &checkPoint, byte &stage){
              Serial.print(numSwitches);
              Serial.println(" to add a new switch.");
            }
-           else if (numSwitches>1){
+           else if (numSwitches=1){
              Serial.print(F("Enter 0 to overwrite existing switch ")); 
              Serial.print(F("or enter "));
              Serial.print(numSwitches);
@@ -1096,4 +1096,36 @@ Outlet loadOutlet(unsigned int outletNumber){ //outlets are 164 bytes
 void saveOutlet(unsigned int outletNumber,Outlet save){ //outlets are 164 bytes
   EEPROM_writeAnything(eeprom1, sizeof(currentOutlet)*(outletNumber+1), save);
   delay(50);
+}
+
+template <class T> int EEPROM_writeAnything(int deviceaddress, int eeaddress, const T& value){ //EEPROM_writeAnything(eeprom1, sizeof(currentOutlet)*(outletNumber+1), save)
+
+    const byte* p = (const byte*)(const void*)&value;
+    int i;
+    for (i = 0; i < sizeof(value); i++){
+        Wire.beginTransmission(deviceaddress);
+        Wire.write((int)(eeaddress >> 8));   // MSB
+        Wire.write((int)(eeaddress & 0xFF)); // LSB
+        Wire.write(*p++);
+        Wire.endTransmission();
+        delay(5);
+        eeaddress++;
+        //EEPROM.update(ee++, *p++);
+    };
+}
+
+template <class T> int EEPROM_readAnything(int deviceaddress, int eeaddress, T& value){// EEPROM_readAnything(eeprom1, sizeof(currentOutlet)*(outletNumber+1), load);
+
+    byte* p = (byte*)(void*)&value;
+    int i;
+    for (i = 0; i < sizeof(value); i++){
+
+      Wire.beginTransmission(deviceaddress);
+      Wire.write((int)(eeaddress >> 8));   // MSB
+      Wire.write((int)(eeaddress & 0xFF)); // LSB
+      Wire.endTransmission();
+      Wire.requestFrom(deviceaddress,1);
+      if (Wire.available()) *p++ = Wire.read();
+      eeaddress++;
+    }
 }
